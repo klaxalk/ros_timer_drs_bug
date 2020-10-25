@@ -1,0 +1,5 @@
+<library path="lib/libTimerTester">
+  <class name="timer_tester/TimerTester" type="timer_tester::TimerTester" base_class_type="nodelet::Nodelet">
+    <description>TimerTester nodelet</description>
+  </class>
+</library>

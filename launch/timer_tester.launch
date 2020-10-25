@@ -1,0 +1,5 @@
+<launch>
+
+  <node pkg="nodelet" type="nodelet" name="timer_tester" args="standalone timer_tester/TimerTester" output="screen" />
+
+</launch>
