@@ -62,7 +62,7 @@ void TimerTester::onInit() {
   drs_->setCallback(f);
 
   // some empty loops that simulate more operations between the timer/subscriber initialization and the DRS
-  // this could easily be some preparation of control matrices, or some library initialization
+  // but try it without it, the DRS initialization is enough to break fast timers
   for (long i = 0; i < 10e6; i++) {
     ROS_INFO_THROTTLE(0.1, "[TimerTester]: doing some small computation"); 
   }
