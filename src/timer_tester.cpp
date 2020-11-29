@@ -4,6 +4,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <timer_tester/timer_testerConfig.h>
 
+#include <std_msgs/Empty.h>
+
 #define TIMERS_BEFORE 1
 
 namespace timer_tester
@@ -32,6 +34,9 @@ private:
 
   ros::Timer timer_slow_;
   void       timerSlow(const ros::TimerEvent& te);
+
+  ros::Subscriber topic_subscriber_;
+  void            topicSubscriberCallback(const std_msgs::EmptyConstPtr& msg);
 };
 
 void TimerTester::onInit() {
@@ -44,26 +49,35 @@ void TimerTester::onInit() {
 
 #if TIMERS_BEFORE == 1
   ROS_INFO("[TimerTester]: creating timers before DRS");
-  timer_fast_ = nh_.createTimer(ros::Rate(100.0), &TimerTester::timerFast, this);
-  timer_slow_ = nh_.createTimer(ros::Rate(1.0), &TimerTester::timerSlow, this);
+  topic_subscriber_ = nh_.subscribe("in", 1, &TimerTester::topicSubscriberCallback, this, ros::TransportHints().tcpNoDelay());
+  timer_fast_       = nh_.createTimer(ros::Rate(100.0), &TimerTester::timerFast, this);
+  timer_slow_       = nh_.createTimer(ros::Rate(1.0), &TimerTester::timerSlow, this);
 #endif
 
   // | --------------- dynamic reconfigure server --------------- |
 
+  // initialize the DRS
   drs_.reset(new Drs_t(mutex_drs_, nh_));
   Drs_t::CallbackType f = boost::bind(&TimerTester::callbackDrs, this, _1, _2);
   drs_->setCallback(f);
 
+  // some empty loops that simulate more operations between the timer/subscriber initialization and the DRS
+  // this could easily be some preparation of control matrices, or some library initialization
+  for (long i = 0; i < 10e6; i++) {
+    ROS_INFO_THROTTLE(0.1, "[TimerTester]: doing some small computation"); 
+  }
+
 #if TIMERS_BEFORE == 0
   ROS_INFO("[TimerTester]: creating timers after DRS");
-  timer_fast_ = nh_.createTimer(ros::Rate(100.0), &TimerTester::timerFast, this);
-  timer_slow_ = nh_.createTimer(ros::Rate(1.0), &TimerTester::timerSlow, this);
+  topic_subscriber_ = nh_.subscribe("in", 1, &TimerTester::topicSubscriberCallback, this, ros::TransportHints().tcpNoDelay());
+  timer_fast_       = nh_.createTimer(ros::Rate(100.0), &TimerTester::timerFast, this);
+  timer_slow_       = nh_.createTimer(ros::Rate(1.0), &TimerTester::timerSlow, this);
 #endif
 
   ROS_INFO_ONCE("[TimerTester]: initialized");
 }
 
-// | --------------------- timer callbacks -------------------- |
+// | ------------------------ callbacks ----------------------- |
 
 void TimerTester::timerFast([[maybe_unused]] const ros::TimerEvent& te) {
 
@@ -78,6 +92,11 @@ void TimerTester::timerSlow([[maybe_unused]] const ros::TimerEvent& te) {
 void TimerTester::callbackDrs([[maybe_unused]] timer_tester::timer_testerConfig& config, [[maybe_unused]] uint32_t level) {
 
   ROS_INFO("[TimerTester]: callbackDrs() called");
+}
+
+void TimerTester::topicSubscriberCallback([[maybe_unused]] const std_msgs::EmptyConstPtr& msg) {
+
+  ROS_INFO_THROTTLE(0.1, "[TimerTester]: topic callback alive");
 }
 
 }  // namespace timer_tester
